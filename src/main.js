@@ -319,7 +319,85 @@
     game.setPaused(false);
   });
 
-  // 移动端多点触控手柄绑定 (支持双指同时按方向+跳跃)
+  // 移动端多点触控手柄：
+  // 1) 方向盘支持单指滑动切换 ◀ / ▼ / ▶
+  const touchDpad = document.getElementById("touch-dpad");
+  if (touchDpad) {
+    const dpadButtons = Array.from(touchDpad.querySelectorAll("[data-touch-dpad]"));
+    const pointerDirs = new Map(); // pointerId -> 'left' | 'down' | 'right' | null
+
+    const syncDpad = () => {
+      const activeDirs = new Set(pointerDirs.values());
+      ["left", "down", "right"].forEach((dir) => {
+        game.setTouchInput(dir, activeDirs.has(dir));
+      });
+      dpadButtons.forEach((b) => {
+        b.classList.toggle("is-active", activeDirs.has(b.getAttribute("data-touch-dpad")));
+      });
+    };
+
+    const hitDir = (clientX, clientY) => {
+      const el = document.elementFromPoint(clientX, clientY);
+      const btn = el && el.closest ? el.closest("[data-touch-dpad]") : null;
+      return btn ? btn.getAttribute("data-touch-dpad") : null;
+    };
+
+    touchDpad.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      Audio.init();
+      try { touchDpad.setPointerCapture(e.pointerId); } catch (_) {}
+      pointerDirs.set(e.pointerId, hitDir(e.clientX, e.clientY));
+      syncDpad();
+    });
+
+    touchDpad.addEventListener("pointermove", (e) => {
+      if (!pointerDirs.has(e.pointerId)) return;
+      e.preventDefault();
+      const nextDir = hitDir(e.clientX, e.clientY);
+      if (pointerDirs.get(e.pointerId) !== nextDir) {
+        pointerDirs.set(e.pointerId, nextDir);
+        syncDpad();
+      }
+    });
+
+    const endDpad = (e) => {
+      if (!pointerDirs.has(e.pointerId)) return;
+      e.preventDefault();
+      pointerDirs.delete(e.pointerId);
+      syncDpad();
+    };
+
+    touchDpad.addEventListener("pointerup", endDpad);
+    touchDpad.addEventListener("pointercancel", endDpad);
+    touchDpad.addEventListener("lostpointercapture", endDpad);
+    touchDpad.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+
+  // 2) 冲刺锁定开关：点一下常驻冲刺，双指即可同时方向+冲刺+跳跃
+  const sprintToggleBtn = document.getElementById("touch-sprint-toggle");
+  let sprintLocked = false;
+  function updateSprintToggleUi() {
+    if (!sprintToggleBtn) return;
+    sprintToggleBtn.classList.toggle("is-on", sprintLocked);
+    sprintToggleBtn.textContent = sprintLocked ? "⚡ 冲刺:开" : "⚡ 冲刺:关";
+  }
+  if (sprintToggleBtn) {
+    sprintToggleBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      Audio.init();
+      Audio.sfxClick();
+      sprintLocked = !sprintLocked;
+      game.setTouchInput("sprint", sprintLocked);
+      updateSprintToggleUi();
+    });
+    sprintToggleBtn.addEventListener("contextmenu", (e) => e.preventDefault());
+    window.addEventListener("blur", () => {
+      sprintLocked = false;
+      updateSprintToggleUi();
+    });
+  }
+
+  // 3) 跳跃键独立多点触控绑定
   document.querySelectorAll("[data-touch-key]").forEach((btn) => {
     const key = btn.getAttribute("data-touch-key");
     const activePointers = new Set();

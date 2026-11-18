@@ -76,13 +76,13 @@
 
       <!-- 手机/平板触控按钮 -->
       <div class="touch-controls">
-        <div class="touch-group">
-          <button class="touch-btn" data-touch-key="left" type="button">◀</button>
-          <button class="touch-btn" data-touch-key="down" type="button">▼</button>
-          <button class="touch-btn" data-touch-key="right" type="button">▶</button>
+        <div id="touch-dpad" class="touch-group touch-dpad">
+          <button class="touch-btn" data-touch-dpad="left" type="button">◀</button>
+          <button class="touch-btn" data-touch-dpad="down" type="button">▼</button>
+          <button class="touch-btn" data-touch-dpad="right" type="button">▶</button>
         </div>
         <div class="touch-group">
-          <button class="touch-btn" data-touch-key="sprint" type="button">冲刺</button>
+          <button id="touch-sprint-toggle" class="touch-btn sprint-toggle" type="button">⚡ 冲刺:关</button>
           <button class="touch-btn jump" data-touch-key="jump" type="button">跳跃</button>
         </div>
       </div>

@@ -312,6 +312,19 @@ body {
   box-shadow: inset 0 2px 0 #ff8d7a, 0 3px 0 var(--border-dark);
 }
 
+.touch-btn.sprint-toggle {
+  min-width: 82px;
+  font-size: 12px;
+  padding: 0 8px;
+  background: #2f3b70;
+}
+
+.touch-btn.sprint-toggle.is-on {
+  background: var(--accent-gold);
+  color: #18140c;
+  box-shadow: inset 0 2px 0 #fff3a8, inset 0 -3px 0 #d49616, 0 3px 0 var(--border-dark);
+}
+
 /* 右侧：实时速通排行榜 */
 .leaderboard-card {
   padding: 12px;
