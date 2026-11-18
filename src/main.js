@@ -19,11 +19,13 @@
   const hudPb = document.getElementById("hud-pb");
   const headerPlayerName = document.getElementById("header-player-name");
 
-  // 启动作者弹窗
+  // 启动欢迎弹窗与关于作者弹窗
   const welcomeModal = document.getElementById("welcome-modal");
   const playerInput = document.getElementById("player-name-input");
   const startGameBtn = document.getElementById("start-game-btn");
+  const authorModal = document.getElementById("author-modal");
   const openAuthorBtn = document.getElementById("open-author-btn");
+  const closeAuthorBtn = document.getElementById("close-author-btn");
 
   // 胜利弹窗
   const victoryModal = document.getElementById("victory-modal");
@@ -143,7 +145,22 @@
     Audio.sfxClick();
     game.modalOpen = true;
     game.setPaused(true);
-    welcomeModal.classList.remove("hidden");
+    authorModal.classList.remove("hidden");
+  });
+
+  function closeAuthorModal() {
+    Audio.sfxClick();
+    authorModal.classList.add("hidden");
+    game.modalOpen = false;
+    game.setPaused(false);
+    pauseOverlay.classList.add("hidden");
+    pauseBtn.textContent = "⏸ 暂停";
+    focusGameCanvas();
+  }
+
+  closeAuthorBtn.addEventListener("click", closeAuthorModal);
+  authorModal.addEventListener("click", (e) => {
+    if (e.target === authorModal) closeAuthorModal();
   });
 
   victoryRetryBtn.addEventListener("click", () => {

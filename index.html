@@ -110,7 +110,7 @@
     </aside>
   </main>
 
-  <!-- 启动弹窗：作者信息 + 主角展示 + 昵称输入 -->
+  <!-- 启动弹窗：游戏介绍 + 主角展示 + 昵称输入 -->
   <div id="welcome-modal" class="modal-backdrop">
     <div class="modal-card">
       <h2 class="modal-title">★ 欢迎来到《奶娃之旅》 ★</h2>
@@ -120,15 +120,10 @@
           <img id="naiwa-portrait-img" src="assets/naiwa_pixel.png" alt="像素奶娃" class="naiwa-avatar" />
           <span class="avatar-caption">主角：像素奶娃</span>
         </div>
-        <div style="font-size: 22px; color: var(--accent-gold);">⚡</div>
-        <div class="avatar-block">
-          <img id="author-avatar-img" src="assets/author.jpg" alt="作者头像" class="author-avatar" />
-          <span class="avatar-caption">作者：<span class="author-tag">forgivez</span></span>
-        </div>
       </div>
 
       <div class="author-banner">
-        欢迎体验像素横版闯关速通游戏<strong>《奶娃之旅》</strong>！本游戏由 <strong>forgivez</strong> 制作，当前开放第一关<strong>「1-1 奶娃大草原」</strong>。首次操作即开始速通计时，触碰终点旗杆立即锁表并实时刷新排行榜！
+        欢迎体验像素横版闯关速通游戏<strong>《奶娃之旅》</strong>！当前开放第一关<strong>「1-1 奶娃大草原」</strong>。首次操作即开始速通计时，触碰终点旗杆立即锁表并实时刷新排行榜！
       </div>
 
       <div class="input-row">
@@ -147,6 +142,28 @@
 
       <div class="modal-actions">
         <button id="start-game-btn" class="pixel-btn green" type="button">▶ 开始冒险 START!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 关于作者弹窗（点击右上角「关于作者」按钮打开） -->
+  <div id="author-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">👨‍🎨 关于作者 · ABOUT AUTHOR</h2>
+
+      <div class="welcome-showcase">
+        <div class="avatar-block">
+          <img id="author-avatar-img" src="assets/author.jpg" alt="作者头像" class="author-avatar" />
+          <span class="avatar-caption">作者：<span class="author-tag">forgivez</span></span>
+        </div>
+      </div>
+
+      <div class="author-banner">
+        《奶娃之旅》由 <strong>forgivez</strong> 制作，采用像素风格与复古 8-Bit 芯片音乐还原经典横版闯关乐趣。欢迎挑战速通排行榜，刷新全服纪录！
+      </div>
+
+      <div class="modal-actions">
+        <button id="close-author-btn" class="pixel-btn green" type="button">✖ 返回游戏</button>
       </div>
     </div>
   </div>
