@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>奶娃之旅 · Pixel Speedrun Edition</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <header class="top-header pixel-box">
+    <div class="brand-wrap">
+      <img src="assets/naiwa_pixel.png" alt="奶娃" class="brand-icon" />
+      <div>
+        <h1 class="brand-title">奶娃之旅 · NAIWA'S JOURNEY</h1>
+        <div class="brand-sub">第一关：奶娃大草原 (World 1-1) · 作者：forgivez</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="player-pill">
+        <span>玩家:</span>
+        <strong id="header-player-name">小奶娃</strong>
+      </div>
+      <button id="mute-btn" class="pixel-btn secondary sm" type="button">🔊 音效开</button>
+      <button id="pause-btn" class="pixel-btn secondary sm" type="button">⏸ 暂停</button>
+      <button id="restart-btn" class="pixel-btn sm" type="button">🔄 重开 (R)</button>
+      <button id="open-author-btn" class="pixel-btn secondary sm" type="button">👨‍🎨 关于作者</button>
+    </div>
+  </header>
+
+  <!-- 主体区：游戏屏幕 + 实时速通排行榜 -->
+  <main class="main-layout">
+    <section class="game-stage-card pixel-box">
+      <div class="hud-bar">
+        <div class="hud-item">
+          <span class="hud-label">状态</span>
+          <span id="hud-hero" class="hud-val">奶娃</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">金币</span>
+          <span id="hud-coins" class="hud-val">00</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">得分</span>
+          <span id="hud-score" class="hud-val">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">⏱ 速通计时</span>
+          <span id="hud-timer" class="hud-val timer">00:00.000</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">🏆 个人最佳</span>
+          <span id="hud-pb" class="hud-val pb">--:--.---</span>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="game-canvas" width="400" height="240" tabindex="0"></canvas>
+        <div id="pause-overlay" class="pause-badge hidden">
+          <div>PAUSED · 游戏已暂停</div>
+          <div style="font-size: 12px; color: #dce4ff;">按 P / ESC 或点击上方「继续」恢复冒险</div>
+        </div>
+      </div>
+
+      <div class="controls-bar">
+        <div>
+          移动 <span class="kbd">A</span><span class="kbd">D</span> / <span class="kbd">←</span><span class="kbd">→</span>
+          · 跳跃 <span class="kbd">Space</span> / <span class="kbd">W</span> / <span class="kbd">↑</span>
+          · 冲刺 <span class="kbd">Shift</span>
+          · 进水管 <span class="kbd">S</span> / <span class="kbd">↓</span>
+          · 重开 <span class="kbd">R</span>
+        </div>
+        <div>提示：第4根绿水管按 ↓ 可进秘密金币捷径！（建议英文输入法游玩）</div>
+      </div>
+
+      <!-- 手机/平板触控按钮 -->
+      <div class="touch-controls">
+        <div class="touch-group">
+          <button class="touch-btn" data-touch-key="left" type="button">◀</button>
+          <button class="touch-btn" data-touch-key="down" type="button">▼</button>
+          <button class="touch-btn" data-touch-key="right" type="button">▶</button>
+        </div>
+        <div class="touch-group">
+          <button class="touch-btn" data-touch-key="sprint" type="button">冲刺</button>
+          <button class="touch-btn jump" data-touch-key="jump" type="button">跳跃</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右侧实时排行榜 -->
+    <aside class="leaderboard-card pixel-box">
+      <div class="lb-header">
+        <h2 class="lb-title">🏆 实时速通排行榜</h2>
+        <span class="live-status"><span class="live-dot"></span><span id="lb-live-text">本地实时榜</span></span>
+      </div>
+
+      <div class="lb-tabs">
+        <button id="lb-tab-all" class="lb-tab active" type="button">全部排名</button>
+        <button id="lb-tab-player" class="lb-tab" type="button">仅看玩家</button>
+        <button id="open-cloud-btn" class="pixel-btn secondary sm" type="button" title="配置云端实时榜">☁️ 云端</button>
+      </div>
+
+      <ul id="lb-list" class="lb-list"></ul>
+
+      <div class="lb-footer">
+        <span>按通关用时(ms)实时排名</span>
+        <button id="lb-clear-btn" class="pixel-btn secondary sm" type="button">清空本地</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 启动弹窗：作者信息 + 主角展示 + 昵称输入 -->
+  <div id="welcome-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2 class="modal-title">★ 欢迎来到《奶娃之旅》 ★</h2>
+
+      <div class="welcome-showcase">
+        <div class="avatar-block">
+          <img id="naiwa-portrait-img" src="assets/naiwa_pixel.png" alt="像素奶娃" class="naiwa-avatar" />
+          <span class="avatar-caption">主角：像素奶娃</span>
+        </div>
+        <div style="font-size: 22px; color: var(--accent-gold);">⚡</div>
+        <div class="avatar-block">
+          <img id="author-avatar-img" src="assets/author.jpg" alt="作者头像" class="author-avatar" />
+          <span class="avatar-caption">作者：<span class="author-tag">forgivez</span></span>
+        </div>
+      </div>
+
+      <div class="author-banner">
+        欢迎体验像素横版闯关速通游戏<strong>《奶娃之旅》</strong>！本游戏由 <strong>forgivez</strong> 制作，当前开放第一关<strong>「1-1 奶娃大草原」</strong>。首次操作即开始速通计时，触碰终点旗杆立即锁表并实时刷新排行榜！
+      </div>
+
+      <div class="input-row">
+        <label for="player-name-input">输入你的速通昵称（用于实时排行榜显示）：</label>
+        <input id="player-name-input" class="pixel-input" type="text" maxlength="16" placeholder="请输入昵称，例如：奶娃飞毛腿" />
+      </div>
+
+      <div class="tips-grid">
+        <div>🎮 移动：<span class="kbd">A</span><span class="kbd">D</span> 或 <span class="kbd">←</span><span class="kbd">→</span></div>
+        <div>🦘 跳跃：<span class="kbd">Space</span> / <span class="kbd">W</span> / <span class="kbd">↑</span></div>
+        <div>💨 冲刺：<span class="kbd">Shift</span>（长按提速）</div>
+        <div>🕳️ 密道：第4根水管上按 <span class="kbd">↓</span></div>
+        <div>🍼 道具：奶瓶变大、星星无敌加速</div>
+        <div>⏱️ 速通：<span class="kbd">R</span> 一键秒重开刷榜</div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="start-game-btn" class="pixel-btn green" type="button">▶ 开始冒险 START!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通关结算弹窗 -->
+  <div id="victory-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">🎉 第一关通关！STAGE CLEAR!</h2>
+      <div id="victory-pb-banner" class="pb-banner hidden">🔥 恭喜！刷新个人最佳速通纪录！</div>
+
+      <div class="victory-stats">
+        <div class="stat-box">
+          <div class="label">速通时间</div>
+          <div id="victory-time" class="value">00:00.000</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">当前实时排名</div>
+          <div id="victory-rank" class="value">第 1 名</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">得分 / 金币</div>
+          <div id="victory-score" class="value">0 分 / 0 币</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">通关路线</div>
+          <div id="victory-route" class="value">常规通关</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="victory-retry-btn" class="pixel-btn green" type="button">🔄 再来冲榜 (R)</button>
+        <button id="victory-close-btn" class="pixel-btn secondary" type="button">🏆 查看排行榜</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 可选：云端全球实时排行榜配置弹窗 -->
+  <div id="cloud-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">☁️ 全球云端实时榜配置 (可选)</h2>
+      <div class="author-banner" style="font-size: 12px;">
+        默认已开启本地持久化与跨标签页实时同步。上传 GitHub Pages 后，如需所有玩家跨设备共享全球排名，可填入免费 Supabase 项目的 URL 与 Anon Key（留空则使用本地实时榜）。
+      </div>
+      <div class="input-row">
+        <label for="cloud-url-input">Supabase Project URL：</label>
+        <input id="cloud-url-input" class="pixel-input" type="text" placeholder="https://xxxxx.supabase.co" />
+      </div>
+      <div class="input-row">
+        <label for="cloud-key-input">Supabase Anon Key：</label>
+        <input id="cloud-key-input" class="pixel-input" type="text" placeholder="eyJhbGciOi..." />
+      </div>
+      <div class="input-row">
+        <label for="cloud-table-input">数据表名（默认 naiwa_leaderboard）：</label>
+        <input id="cloud-table-input" class="pixel-input" type="text" value="naiwa_leaderboard" />
+      </div>
+      <div class="modal-actions">
+        <button id="save-cloud-btn" class="pixel-btn green" type="button">💾 保存并连接</button>
+        <button id="cancel-cloud-btn" class="pixel-btn secondary" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/config.js"></script>
+  <script src="src/audio.js"></script>
+  <script src="src/sprites.js"></script>
+  <script src="src/level.js"></script>
+  <script src="src/leaderboard.js"></script>
+  <script src="src/game.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

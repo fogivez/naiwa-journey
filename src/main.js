@@ -1,0 +1,344 @@
+/**
+ * 《奶娃之旅》页面控制与实时排行榜界面绑定
+ * 作者: forgivez
+ */
+(function () {
+  const CFG = window.NAIWA_CONFIG;
+  const LB = window.Leaderboard;
+  const Audio = window.RetroAudio;
+  const fmt = window.formatSpeedrunTime;
+
+  const canvas = document.getElementById("game-canvas");
+  const pauseOverlay = document.getElementById("pause-overlay");
+
+  // HUD 元素
+  const hudHero = document.getElementById("hud-hero");
+  const hudCoins = document.getElementById("hud-coins");
+  const hudScore = document.getElementById("hud-score");
+  const hudTimer = document.getElementById("hud-timer");
+  const hudPb = document.getElementById("hud-pb");
+  const headerPlayerName = document.getElementById("header-player-name");
+
+  // 启动作者弹窗
+  const welcomeModal = document.getElementById("welcome-modal");
+  const playerInput = document.getElementById("player-name-input");
+  const startGameBtn = document.getElementById("start-game-btn");
+  const openAuthorBtn = document.getElementById("open-author-btn");
+
+  // 胜利弹窗
+  const victoryModal = document.getElementById("victory-modal");
+  const victoryTime = document.getElementById("victory-time");
+  const victoryRank = document.getElementById("victory-rank");
+  const victoryScore = document.getElementById("victory-score");
+  const victoryRoute = document.getElementById("victory-route");
+  const victoryPbBanner = document.getElementById("victory-pb-banner");
+  const victoryRetryBtn = document.getElementById("victory-retry-btn");
+  const victoryCloseBtn = document.getElementById("victory-close-btn");
+
+  // 排行榜元素
+  const lbList = document.getElementById("lb-list");
+  const lbLiveText = document.getElementById("lb-live-text");
+  const tabAllBtn = document.getElementById("lb-tab-all");
+  const tabPlayerBtn = document.getElementById("lb-tab-player");
+  const clearRunsBtn = document.getElementById("lb-clear-btn");
+
+  // 云端设置弹窗
+  const cloudModal = document.getElementById("cloud-modal");
+  const openCloudBtn = document.getElementById("open-cloud-btn");
+  const cloudUrlInput = document.getElementById("cloud-url-input");
+  const cloudKeyInput = document.getElementById("cloud-key-input");
+  const cloudTableInput = document.getElementById("cloud-table-input");
+  const saveCloudBtn = document.getElementById("save-cloud-btn");
+  const cancelCloudBtn = document.getElementById("cancel-cloud-btn");
+
+  // 控制按钮
+  const muteBtn = document.getElementById("mute-btn");
+  const restartBtn = document.getElementById("restart-btn");
+  const pauseBtn = document.getElementById("pause-btn");
+
+  // 初始化作者头像与奶娃头像
+  document.getElementById("author-avatar-img").src = CFG.authorAvatarPath;
+  document.getElementById("naiwa-portrait-img").src = CFG.naiwaPortraitPath;
+
+  playerInput.value = LB.getPlayerName();
+  headerPlayerName.textContent = LB.getPlayerName();
+
+  let lastHighlightRunId = null;
+
+  const game = new window.NaiwaGame(canvas, {
+    onHudUpdate: (hud) => {
+      hudHero.textContent = hud.isBig ? "👑 超级奶娃" : "奶娃";
+      hudCoins.textContent = String(hud.coins).padStart(2, "0");
+      hudScore.textContent = String(hud.score);
+      hudTimer.textContent = hud.runStarted ? fmt(hud.timeMs) : "00:00.000";
+    },
+    onPauseChange: (isPaused) => {
+      pauseOverlay.classList.toggle("hidden", !isPaused);
+      pauseBtn.textContent = isPaused ? "▶ 继续" : "⏸ 暂停";
+    },
+    onRestart: () => {
+      victoryModal.classList.add("hidden");
+      pauseOverlay.classList.add("hidden");
+      pauseBtn.textContent = "⏸ 暂停";
+    },
+    onVictory: async (result) => {
+      const playerName = LB.setPlayerName(playerInput.value);
+      headerPlayerName.textContent = playerName;
+
+      const { run, rank, isNewPb } = await LB.submitRun({
+        name: playerName,
+        timeMs: result.timeMs,
+        coins: result.coins,
+        score: result.score,
+        route: result.route
+      });
+
+      lastHighlightRunId = run.id;
+      victoryTime.textContent = fmt(result.timeMs);
+      victoryRank.textContent = rank > 0 ? `第 ${rank} 名` : "已上榜";
+      victoryScore.textContent = `${result.score} 分 / ${result.coins} 币`;
+      victoryRoute.textContent = result.route;
+      victoryPbBanner.classList.toggle("hidden", !isNewPb);
+
+      game.modalOpen = true;
+      victoryModal.classList.remove("hidden");
+    }
+  });
+
+  game.startLoop();
+
+  function focusGameCanvas() {
+    if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+    canvas.focus?.({ preventScroll: true });
+  }
+
+  canvas.addEventListener("pointerdown", () => {
+    if (!game.modalOpen) focusGameCanvas();
+  });
+
+  // 关闭启动作者弹窗并开始游戏
+  function enterGameFromWelcome() {
+    const cleanName = LB.setPlayerName(playerInput.value);
+    playerInput.value = cleanName;
+    headerPlayerName.textContent = cleanName;
+
+    Audio.init();
+    Audio.sfxClick();
+    welcomeModal.classList.add("hidden");
+    game.modalOpen = false;
+    game.setPaused(false);
+    pauseOverlay.classList.add("hidden");
+    pauseBtn.textContent = "⏸ 暂停";
+    focusGameCanvas();
+  }
+
+  startGameBtn.addEventListener("click", enterGameFromWelcome);
+  playerInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") enterGameFromWelcome();
+  });
+
+  openAuthorBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    game.modalOpen = true;
+    game.setPaused(true);
+    welcomeModal.classList.remove("hidden");
+  });
+
+  victoryRetryBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    victoryModal.classList.add("hidden");
+    game.resetGameState(true);
+    pauseOverlay.classList.add("hidden");
+    focusGameCanvas();
+  });
+
+  victoryCloseBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    victoryModal.classList.add("hidden");
+    game.modalOpen = false;
+    focusGameCanvas();
+  });
+
+  restartBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    victoryModal.classList.add("hidden");
+    pauseOverlay.classList.add("hidden");
+    game.resetGameState(true);
+    focusGameCanvas();
+  });
+
+  pauseBtn.addEventListener("click", () => {
+    if (game.modalOpen || game.state !== "playing") return;
+    Audio.sfxClick();
+    const next = !game.paused;
+    game.setPaused(next);
+    pauseOverlay.classList.toggle("hidden", !next);
+    pauseBtn.textContent = next ? "▶ 继续" : "⏸ 暂停";
+    focusGameCanvas();
+  });
+
+  muteBtn.addEventListener("click", () => {
+    Audio.init();
+    const nextMute = !Audio.muted;
+    Audio.setMuted(nextMute);
+    muteBtn.textContent = nextMute ? "🔇 已静音" : "🔊 音效开";
+    if (!nextMute) Audio.sfxClick();
+    if (!game.modalOpen) focusGameCanvas();
+  });
+
+  // 排行榜实时渲染
+  function renderLeaderboard(snap) {
+    headerPlayerName.textContent = snap.playerName;
+    hudPb.textContent = snap.personalBest ? fmt(snap.personalBest.timeMs) : "--:--.---";
+
+    if (snap.cloudEnabled) {
+      if (snap.cloudStatus === "cloud-ok") lbLiveText.textContent = "云端实时同步";
+      else if (snap.cloudStatus === "cloud-syncing") lbLiveText.textContent = "云端同步中...";
+      else lbLiveText.textContent = "云端连接异常";
+    } else {
+      lbLiveText.textContent = "本地实时榜";
+    }
+
+    tabAllBtn.classList.toggle("active", snap.filterMode === "all");
+    tabPlayerBtn.classList.toggle("active", snap.filterMode === "player");
+
+    lbList.innerHTML = "";
+    if (snap.runs.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "lb-row";
+      empty.style.gridTemplateColumns = "1fr";
+      empty.style.textAlign = "center";
+      empty.style.color = "#aeb9e6";
+      empty.textContent = "暂无玩家速通记录，快去冲刺终点旗杆吧！";
+      lbList.appendChild(empty);
+      return;
+    }
+
+    snap.runs.forEach((item, idx) => {
+      const rank = idx + 1;
+      const li = document.createElement("li");
+      const isMe = !item.isNpc && item.name === snap.playerName;
+      li.className = "lb-row" + (isMe ? " me" : "");
+      if (item.id === lastHighlightRunId) {
+        li.style.boxShadow = "inset 0 0 0 2px #58e068";
+      }
+
+      const rankEl = document.createElement("div");
+      rankEl.className = "lb-rank" + (rank <= 3 ? ` r${rank}` : "");
+      rankEl.textContent = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
+
+      const infoEl = document.createElement("div");
+      infoEl.className = "lb-name-wrap";
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "lb-name";
+      nameEl.textContent = item.name;
+
+      const metaEl = document.createElement("div");
+      metaEl.className = "lb-meta";
+      if (item.isNpc) {
+        const npcTag = document.createElement("span");
+        npcTag.className = "badge-npc";
+        npcTag.textContent = "NPC基准";
+        metaEl.appendChild(npcTag);
+      }
+      if (item.route === "密道捷径") {
+        const routeTag = document.createElement("span");
+        routeTag.className = "badge-shortcut";
+        routeTag.textContent = "密道";
+        metaEl.appendChild(routeTag);
+      }
+      const coinSpan = document.createElement("span");
+      coinSpan.textContent = `🪙${item.coins || 0} · ${item.score || 0}分`;
+      metaEl.appendChild(coinSpan);
+
+      infoEl.appendChild(nameEl);
+      infoEl.appendChild(metaEl);
+
+      const timeEl = document.createElement("div");
+      timeEl.className = "lb-time";
+      timeEl.textContent = fmt(item.timeMs);
+
+      li.appendChild(rankEl);
+      li.appendChild(infoEl);
+      li.appendChild(timeEl);
+      lbList.appendChild(li);
+    });
+  }
+
+  LB.subscribe(renderLeaderboard);
+
+  tabAllBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    LB.setFilterMode("all");
+  });
+  tabPlayerBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    LB.setFilterMode("player");
+  });
+  clearRunsBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    if (confirm("确定要清空本地保存的速通记录吗？")) {
+      LB.clearLocalRuns();
+    }
+  });
+
+  // 云端设置弹窗
+  openCloudBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    const cfg = LB.getCloudConfig();
+    cloudUrlInput.value = cfg.supabaseUrl;
+    cloudKeyInput.value = cfg.supabaseAnonKey;
+    cloudTableInput.value = cfg.tableName;
+    game.modalOpen = true;
+    game.setPaused(true);
+    cloudModal.classList.remove("hidden");
+  });
+
+  saveCloudBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    LB.setCloudConfig(cloudUrlInput.value, cloudKeyInput.value, cloudTableInput.value);
+    cloudModal.classList.add("hidden");
+    game.modalOpen = false;
+    game.setPaused(false);
+  });
+
+  cancelCloudBtn.addEventListener("click", () => {
+    Audio.sfxClick();
+    cloudModal.classList.add("hidden");
+    game.modalOpen = false;
+    game.setPaused(false);
+  });
+
+  // 移动端多点触控手柄绑定 (支持双指同时按方向+跳跃)
+  document.querySelectorAll("[data-touch-key]").forEach((btn) => {
+    const key = btn.getAttribute("data-touch-key");
+    const activePointers = new Set();
+
+    const press = (e) => {
+      e.preventDefault();
+      Audio.init();
+      activePointers.add(e.pointerId);
+      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      btn.classList.add("is-active");
+      game.setTouchInput(key, true);
+    };
+
+    const release = (e) => {
+      e.preventDefault();
+      activePointers.delete(e.pointerId);
+      if (activePointers.size === 0) {
+        btn.classList.remove("is-active");
+        game.setTouchInput(key, false);
+      }
+    };
+
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointercancel", release);
+    btn.addEventListener("lostpointercapture", release);
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+  });
+})();
