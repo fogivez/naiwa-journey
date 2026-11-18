@@ -19,6 +19,28 @@
   const hudPb = document.getElementById("hud-pb");
   const headerPlayerName = document.getElementById("header-player-name");
 
+  const STAGE_INFO = window.NaiwaLevels.STAGE_INFO;
+  const headerStageSub = document.getElementById("header-stage-sub");
+  const stageButtons = Array.from(document.querySelectorAll(".stage-pill[data-stage]"));
+
+  // NPC 对话框元素 (无配音)
+  const npcTalkBtn = document.getElementById("npc-talk-btn");
+  const dialogueBox = document.getElementById("dialogue-box");
+  const dialoguePortrait = document.getElementById("dialogue-portrait");
+  const dialogueSpeaker = document.getElementById("dialogue-speaker");
+  const dialogueText = document.getElementById("dialogue-text");
+  const dialogueNext = document.getElementById("dialogue-next");
+
+  // 过关剧情转场弹窗 (1~3 关)
+  const stageClearModal = document.getElementById("stage-clear-modal");
+  const stageClearTitle = document.getElementById("stage-clear-title");
+  const stageClearStory = document.getElementById("stage-clear-story");
+  const stageClearTime = document.getElementById("stage-clear-time");
+  const stageClearScore = document.getElementById("stage-clear-score");
+  const nextStageBtn = document.getElementById("next-stage-btn");
+  const submitStage1Btn = document.getElementById("submit-stage1-btn");
+  const stageRetryBtn = document.getElementById("stage-retry-btn");
+
   // 启动欢迎弹窗与关于作者弹窗
   const welcomeModal = document.getElementById("welcome-modal");
   const playerInput = document.getElementById("player-name-input");
@@ -29,6 +51,7 @@
 
   // 胜利弹窗
   const victoryModal = document.getElementById("victory-modal");
+  const victoryTitle = document.getElementById("victory-title");
   const victoryTime = document.getElementById("victory-time");
   const victoryRank = document.getElementById("victory-rank");
   const victoryScore = document.getElementById("victory-score");
@@ -66,6 +89,47 @@
   headerPlayerName.textContent = LB.getPlayerName();
 
   let lastHighlightRunId = null;
+  let pendingStageResult = null;
+
+  const STAGE_TRANSITION_STORY = {
+    1: "你穿过青草村的城堡大门，顺着石阶走进了幽暗潮湿的古代地下矿道……前方是第 2 关「1-2 幽暗古矿洞」！",
+    2: "走出幽暗矿洞，暮色云海之上悬浮着巨大的树冠天桥！前方是第 3 关「1-3 迷雾天桥群岛」！",
+    3: "跨越天桥群岛，炽热的岩浆气息迎面扑来！深渊红龙就在里面，准备决战第 4 关「1-4 恶龙熔岩城堡」！"
+  };
+
+  function updateStageUi(stageNum) {
+    const info = STAGE_INFO[stageNum] || STAGE_INFO[1];
+    if (headerStageSub) {
+      headerStageSub.textContent = `当前关卡：${info.code} ${info.name} · 勇者奶娃斗恶龙篇`;
+    }
+    stageButtons.forEach((btn) => {
+      btn.classList.toggle("active", Number(btn.getAttribute("data-stage")) === stageNum);
+    });
+  }
+
+  async function submitAndShowVictory(result, titleText) {
+    const playerName = LB.setPlayerName(playerInput.value);
+    headerPlayerName.textContent = playerName;
+
+    const { run, rank, isNewPb } = await LB.submitRun({
+      name: playerName,
+      timeMs: result.timeMs,
+      coins: result.coins,
+      score: result.score,
+      route: result.route
+    });
+
+    lastHighlightRunId = run.id;
+    victoryTitle.textContent = titleText;
+    victoryTime.textContent = fmt(result.timeMs);
+    victoryRank.textContent = rank > 0 ? `第 ${rank} 名` : "已上榜";
+    victoryScore.textContent = `${result.score} 分 / ${result.coins} 币`;
+    victoryRoute.textContent = result.route;
+    victoryPbBanner.classList.toggle("hidden", !isNewPb);
+
+    game.modalOpen = true;
+    victoryModal.classList.remove("hidden");
+  }
 
   const game = new window.NaiwaGame(canvas, {
     onHudUpdate: (hud) => {
@@ -74,40 +138,121 @@
       hudScore.textContent = String(hud.score);
       hudTimer.textContent = hud.runStarted ? fmt(hud.timeMs) : "00:00.000";
     },
+    onStageChange: updateStageUi,
+    onNearbyNpcChange: (npc) => {
+      if (npc) {
+        npcTalkBtn.textContent = `💬 与${npc.name}对话 (E)`;
+        npcTalkBtn.classList.remove("hidden");
+      } else {
+        npcTalkBtn.classList.add("hidden");
+      }
+    },
+    onDialogueChange: (dlg) => {
+      if (!dlg) {
+        dialogueBox.classList.add("hidden");
+        return;
+      }
+      const portraitUrl = window.SpriteBank.npcPortraits[dlg.type];
+      if (portraitUrl) dialoguePortrait.src = portraitUrl;
+      dialogueSpeaker.textContent = `${dlg.name} · ${dlg.title}`;
+      dialogueText.textContent = dlg.text;
+      dialogueNext.textContent = dlg.hasNext
+        ? `点击此处或按 Space / E 继续 (${dlg.lineIndex + 1}/${dlg.totalLines}) ▼`
+        : "点击此处或按 Space / E 结束对话 ✔";
+      dialogueBox.classList.remove("hidden");
+    },
     onPauseChange: (isPaused) => {
       pauseOverlay.classList.toggle("hidden", !isPaused);
       pauseBtn.textContent = isPaused ? "▶ 继续" : "⏸ 暂停";
     },
     onRestart: () => {
       victoryModal.classList.add("hidden");
+      stageClearModal.classList.add("hidden");
       pauseOverlay.classList.add("hidden");
       pauseBtn.textContent = "⏸ 暂停";
     },
-    onVictory: async (result) => {
-      const playerName = LB.setPlayerName(playerInput.value);
-      headerPlayerName.textContent = playerName;
-
-      const { run, rank, isNewPb } = await LB.submitRun({
-        name: playerName,
-        timeMs: result.timeMs,
-        coins: result.coins,
-        score: result.score,
-        route: result.route
-      });
-
-      lastHighlightRunId = run.id;
-      victoryTime.textContent = fmt(result.timeMs);
-      victoryRank.textContent = rank > 0 ? `第 ${rank} 名` : "已上榜";
-      victoryScore.textContent = `${result.score} 分 / ${result.coins} 币`;
-      victoryRoute.textContent = result.route;
-      victoryPbBanner.classList.toggle("hidden", !isNewPb);
+    onStageClear: (result) => {
+      pendingStageResult = result;
+      const curInfo = STAGE_INFO[result.stage];
+      const nextInfo = STAGE_INFO[result.stage + 1];
+      stageClearTitle.textContent = `🚩 ${curInfo.code} ${curInfo.name} 通关！`;
+      stageClearStory.textContent = STAGE_TRANSITION_STORY[result.stage] || "";
+      stageClearTime.textContent = fmt(result.timeMs);
+      stageClearScore.textContent = `${result.score} 分 / ${result.coins} 币`;
+      nextStageBtn.textContent = `▶ 前往第 ${nextInfo.num} 关：${nextInfo.name}`;
+      submitStage1Btn.classList.toggle("hidden", !(result.stage === 1 && result.fullCampaign));
 
       game.modalOpen = true;
-      victoryModal.classList.remove("hidden");
+      stageClearModal.classList.remove("hidden");
+    },
+    onVictory: async (result) => {
+      if (result.fullCampaign) {
+        await submitAndShowVictory(result, "🎉 勇者凯旋！全四关通关！");
+      } else {
+        victoryTitle.textContent = "🐉 击败深渊红龙！救出莉莉娅公主！";
+        victoryTime.textContent = fmt(result.timeMs);
+        victoryRank.textContent = "单关练习";
+        victoryScore.textContent = `${result.score} 分 / ${result.coins} 币`;
+        victoryRoute.textContent = "从 1-1 连闯可入榜";
+        victoryPbBanner.classList.add("hidden");
+        game.modalOpen = true;
+        victoryModal.classList.remove("hidden");
+      }
     }
   });
 
   game.startLoop();
+
+  // 关卡切换按钮
+  stageButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetStage = Number(btn.getAttribute("data-stage"));
+      Audio.init();
+      Audio.sfxClick();
+      victoryModal.classList.add("hidden");
+      stageClearModal.classList.add("hidden");
+      pauseOverlay.classList.add("hidden");
+      welcomeModal.classList.add("hidden");
+      game.startStage(targetStage, { keepProgress: false, autoUnpause: true });
+      focusGameCanvas();
+    });
+  });
+
+  // 过关转场按钮
+  nextStageBtn.addEventListener("click", () => {
+    if (!pendingStageResult) return;
+    Audio.sfxClick();
+    stageClearModal.classList.add("hidden");
+    game.startStage(pendingStageResult.stage + 1, { keepProgress: true, autoUnpause: true });
+    focusGameCanvas();
+  });
+
+  submitStage1Btn.addEventListener("click", async () => {
+    if (!pendingStageResult) return;
+    Audio.sfxClick();
+    stageClearModal.classList.add("hidden");
+    await submitAndShowVictory(pendingStageResult, "🏆 第一关速通结算！");
+  });
+
+  stageRetryBtn.addEventListener("click", () => {
+    if (!pendingStageResult) return;
+    Audio.sfxClick();
+    stageClearModal.classList.add("hidden");
+    game.startStage(pendingStageResult.stage, { keepProgress: false, autoUnpause: true });
+    focusGameCanvas();
+  });
+
+  // NPC 对话触发与点击推进
+  npcTalkBtn.addEventListener("click", () => {
+    Audio.init();
+    game.interactNearbyNpc();
+    focusGameCanvas();
+  });
+
+  dialogueBox.addEventListener("click", () => {
+    game.advanceDialogue();
+    focusGameCanvas();
+  });
 
   function focusGameCanvas() {
     if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) {
@@ -166,7 +311,8 @@
   victoryRetryBtn.addEventListener("click", () => {
     Audio.sfxClick();
     victoryModal.classList.add("hidden");
-    game.resetGameState(true);
+    stageClearModal.classList.add("hidden");
+    game.startStage(1, { keepProgress: false, autoUnpause: true });
     pauseOverlay.classList.add("hidden");
     focusGameCanvas();
   });
@@ -181,6 +327,7 @@
   restartBtn.addEventListener("click", () => {
     Audio.sfxClick();
     victoryModal.classList.add("hidden");
+    stageClearModal.classList.add("hidden");
     pauseOverlay.classList.add("hidden");
     game.resetGameState(true);
     focusGameCanvas();

@@ -687,8 +687,558 @@
     tiles.pipeBodyL = mkPipeStrip(false, true);
     tiles.pipeBodyR = mkPipeStrip(false, false);
 
+    // 1-3 迷雾天桥树冠平台与树干
+    const mkTreeTop = (edge) => {
+      const c = createCanvas(16, 16);
+      const x = c.getContext("2d");
+      x.fillStyle = "#E85828";
+      x.fillRect(0, 0, 16, 16);
+      x.fillStyle = "#FF9850";
+      x.fillRect(0, 0, 16, 4);
+      x.fillStyle = "#FFE0A0";
+      x.fillRect(2, 5, 4, 4);
+      x.fillRect(10, 6, 4, 4);
+      x.fillStyle = "#782008";
+      x.fillRect(0, 14, 16, 2);
+      if (edge === "L") {
+        x.fillRect(0, 0, 2, 16);
+      } else if (edge === "R") {
+        x.fillRect(14, 0, 2, 16);
+      }
+      return c;
+    };
+    tiles.treeTopL = mkTreeTop("L");
+    tiles.treeTopM = mkTreeTop("M");
+    tiles.treeTopR = mkTreeTop("R");
+    {
+      const c = createCanvas(16, 16);
+      const x = c.getContext("2d");
+      x.fillStyle = "#9C5828";
+      x.fillRect(2, 0, 12, 16);
+      x.fillStyle = "#C87838";
+      x.fillRect(4, 0, 4, 16);
+      x.fillStyle = "#542C10";
+      x.fillRect(11, 0, 3, 16);
+      tiles.treeTrunk = c;
+    }
+
+    // 1-4 城堡石砖与锁链桥
+    {
+      const c = createCanvas(16, 16);
+      const x = c.getContext("2d");
+      x.fillStyle = "#565C74";
+      x.fillRect(0, 0, 16, 16);
+      x.fillStyle = "#8892B0";
+      x.fillRect(0, 0, 16, 2);
+      x.fillRect(0, 8, 16, 1);
+      x.fillStyle = "#242838";
+      x.fillRect(0, 7, 16, 1);
+      x.fillRect(0, 15, 16, 1);
+      x.fillRect(7, 0, 1, 7);
+      x.fillRect(15, 0, 1, 7);
+      x.fillRect(3, 8, 1, 7);
+      x.fillRect(11, 8, 1, 7);
+      tiles.castleStone = c;
+    }
+    {
+      const c = createCanvas(16, 16);
+      const x = c.getContext("2d");
+      x.fillStyle = "#B87828";
+      x.fillRect(0, 2, 16, 8);
+      x.fillStyle = "#F8D068";
+      x.fillRect(0, 2, 16, 2);
+      x.fillStyle = "#543008";
+      x.fillRect(0, 10, 16, 2);
+      x.fillRect(4, 4, 2, 6);
+      x.fillRect(11, 4, 2, 6);
+      tiles.bridge = c;
+    }
+
+    // 1-4 岩浆动画 (2帧 + 岩浆深处)
+    [0, 1].forEach((f) => {
+      const c = createCanvas(16, 16);
+      const x = c.getContext("2d");
+      x.fillStyle = "#D82808";
+      x.fillRect(0, 4, 16, 12);
+      x.fillStyle = "#FF7818";
+      x.fillRect(0, 2, 16, 4);
+      x.fillStyle = "#FFE858";
+      if (f === 0) {
+        x.fillRect(1, 1, 5, 2);
+        x.fillRect(9, 2, 6, 2);
+      } else {
+        x.fillRect(4, 2, 6, 2);
+        x.fillRect(12, 1, 4, 2);
+      }
+      tiles["lava" + f] = c;
+    });
+    {
+      const c = createCanvas(16, 16);
+      const x = c.getContext("2d");
+      x.fillStyle = "#C42008";
+      x.fillRect(0, 0, 16, 16);
+      x.fillStyle = "#FF5810";
+      x.fillRect(2, 4, 4, 2);
+      x.fillRect(10, 10, 5, 2);
+      tiles.lavaBody = c;
+    }
+
     return tiles;
   }
+
+  // ============ 剧情 NPC 与 恶龙 Boss 像素矩阵 ============
+  const NPC_PAL = {
+    ".": null,
+    "K": "#1A1412",
+    "W": "#FFFFFF",
+    "F": "#FFD8B0", // 肤色
+    "E": "#181818", // 眼睛
+    "B": "#8C5228", // 棕色/木杖
+    "G": "#48B848", // 绿衣
+    "D": "#246824", // 深绿
+    "R": "#E83848", // 红羽/红衣/红宝石
+    "P": "#FF98C8", // 公主粉裙
+    "M": "#E05890", // 公主深粉
+    "Y": "#FFE048", // 金黄/皇冠/金发
+    "O": "#E89818", // 橙金
+    "S": "#B0C4E0", // 银甲
+    "U": "#3870D8", // 蓝袍/蓝甲
+    "N": "#1E3C88", // 深蓝
+    "C": "#68E8FF"  // 魔法晶球/矿灯
+  };
+
+  // 村长老爷爷 (16x22, 2帧)
+  const ELDER_FRAMES = [
+    [
+      "....KKKKKKKK....",
+      "...KBBBBBBBBK...",
+      "..KBBBBBBBBBBK..",
+      ".KKKKKKKKKKKKKK.",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KWWWWWWWWK...",
+      "..KWWWWWWWWWWK..",
+      "..KWWUUUUUUWWK..",
+      ".KBUUUUUUUUUUUK.",
+      ".KBFUUUUUUUUFBK.",
+      ".KBKUUUUUUUUUK..",
+      ".KBKUUUUUUUUUK..",
+      ".KBKUUUYYUUUUK..",
+      ".KBKNNNNNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KB..KBBK.KBBK..",
+      ".KB..KBBK.KBBK..",
+      ".KK..KKKK.KKKK..",
+      "................",
+      "................"
+    ],
+    [
+      "................",
+      "....KKKKKKKK....",
+      "...KBBBBBBBBK...",
+      "..KBBBBBBBBBBK..",
+      ".KKKKKKKKKKKKKK.",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KWWWWWWWWK...",
+      "..KWWWWWWWWWWK..",
+      "..KWWUUUUUUWWK..",
+      ".KBUUUUUUUUUUUK.",
+      ".KBFUUUUUUUUFBK.",
+      ".KBKUUUUUUUUUK..",
+      ".KBKUUUYYUUUUK..",
+      ".KBKNNNNNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KB..KBBK.KBBK..",
+      ".KB..KBBK.KBBK..",
+      ".KK..KKKK.KKKK..",
+      "................",
+      "................"
+    ]
+  ];
+
+  // 村落守卫/骑士 (16x22, 2帧)
+  const KNIGHT_FRAMES = [
+    [
+      "......KKK.......",
+      ".....KRRRK......",
+      "....KSSSSSK.....",
+      "...KSSSSSSSK....",
+      "...KSSFFSSSK....",
+      "...KSFEFFESK....",
+      "...KSSSSSSSK....",
+      "..KUUUUUUUUUK...",
+      ".KSUUUUUUUUUSK..",
+      ".KSSUURRRUUSSK..",
+      ".KSSUURRRUUSSK..",
+      ".KSSUUUUUUUSSK..",
+      "..KKNNNNNNNKK...",
+      "...KNNNNNNNK....",
+      "...KNNNNNNNK....",
+      "...KSSK.KSSK....",
+      "...KSSK.KSSK....",
+      "...KBBK.KBBK....",
+      "...KKKK.KKKK....",
+      "................",
+      "................",
+      "................"
+    ],
+    [
+      "................",
+      "......KKK.......",
+      ".....KRRRK......",
+      "....KSSSSSK.....",
+      "...KSSSSSSSK....",
+      "...KSSFFSSSK....",
+      "...KSFEFFESK....",
+      "...KSSSSSSSK....",
+      "..KUUUUUUUUUK...",
+      ".KSUUUUUUUUUSK..",
+      ".KSSUURRRUUSSK..",
+      ".KSSUURRRUUSSK..",
+      ".KSSUUUUUUUSSK..",
+      "..KKNNNNNNNKK...",
+      "...KNNNNNNNK....",
+      "...KSSK.KSSK....",
+      "...KSSK.KSSK....",
+      "...KBBK.KBBK....",
+      "...KKKK.KKKK....",
+      "................",
+      "................",
+      "................"
+    ]
+  ];
+
+  // 矮人矿工 (16x22, 2帧)
+  const MINER_FRAMES = [
+    [
+      ".....KKKKKK.....",
+      "...KKYYYYYYKK...",
+      "..KYYCCYYYYYYK..",
+      "..KYYCCYYYYYYK..",
+      ".KKKKKKKKKKKKKK.",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KBBBBBBBBK...",
+      "..KBBBBBBBBBBK..",
+      "..KRRRRRRRRRRK..",
+      ".KFRRRRRRRRRRFK.",
+      ".KBRRRRRRRRRRKK.",
+      ".KBKBBBBBBBBK...",
+      ".KBKUUUUUUUUK...",
+      ".KBKUUUUUUUUK...",
+      ".KK.KBBK.KBBK...",
+      "....KBBK.KBBK...",
+      "....KKKK.KKKK...",
+      "................",
+      "................",
+      "................",
+      "................"
+    ],
+    [
+      "................",
+      ".....KKKKKK.....",
+      "...KKYYYYYYKK...",
+      "..KYYWWYYYYYYK..",
+      "..KYYWWYYYYYYK..",
+      ".KKKKKKKKKKKKKK.",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KBBBBBBBBK...",
+      "..KBBBBBBBBBBK..",
+      "..KRRRRRRRRRRK..",
+      ".KFRRRRRRRRRRFK.",
+      ".KBRRRRRRRRRRKK.",
+      ".KBKBBBBBBBBK...",
+      ".KBKUUUUUUUUK...",
+      ".KBKUUUUUUUUK...",
+      ".KK.KBBK.KBBK...",
+      "....KBBK.KBBK...",
+      "....KKKK.KKKK...",
+      "................",
+      "................",
+      "................"
+    ]
+  ];
+
+  // 吟游诗人 (16x22, 2帧)
+  const BARD_FRAMES = [
+    [
+      ".......KKK......",
+      ".....KKGGGKK....",
+      "....KGGGGGRRK...",
+      "...KGGGGGGGGK...",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KFFFFFFFFK...",
+      "..KGGGGGGGGGGK..",
+      ".KFGGYYYYYYGGFK.",
+      ".KFGGYOOOOYGGFK.",
+      "..KKGYOOOOYGKK..",
+      "...KGGGGGGGGK...",
+      "...KDDDDDDDDK...",
+      "...KDDDDDDDDK...",
+      "...KBBK..KBBK...",
+      "...KBBK..KBBK...",
+      "...KKKK..KKKK...",
+      "................",
+      "................",
+      "................",
+      "................",
+      "................"
+    ],
+    [
+      "................",
+      ".......KKK......",
+      ".....KKGGGKK....",
+      "....KGGGGGRRK...",
+      "...KGGGGGGGGK...",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KFFFFFFFFK...",
+      "..KGGGGGGGGGGK..",
+      ".KFGGYYYYYYGGFK.",
+      ".KFGGYOOOOYGGFK.",
+      "..KKGYOOOOYGKK..",
+      "...KGGGGGGGGK...",
+      "...KDDDDDDDDK...",
+      "...KDDDDDDDDK...",
+      "...KBBK..KBBK...",
+      "...KBBK..KBBK...",
+      "...KKKK..KKKK...",
+      "................",
+      "................",
+      "................",
+      "................"
+    ]
+  ];
+
+  // 精灵法师 (16x22, 2帧)
+  const MAGE_FRAMES = [
+    [
+      "......KKKK......",
+      ".....KUUUUK.....",
+      "....KUUYYUUK....",
+      "...KUUUUUUUUK...",
+      "..KUUUUUUUUUUK..",
+      ".KKKKKKKKKKKKKK.",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KFFFFFFFFK...",
+      "..KUUUUUUUUUUK..",
+      ".KCUUUUUUUUUUFK.",
+      ".KCKUUUUUUUUUK..",
+      ".KBKNNYYNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KK.KBBK.KBBK...",
+      "....KBBK.KBBK...",
+      "....KKKK.KKKK...",
+      "................",
+      "................",
+      "................",
+      "................"
+    ],
+    [
+      "................",
+      "......KKKK......",
+      ".....KUUUUK.....",
+      "....KUUWWUUK....",
+      "...KUUUUUUUUK...",
+      "..KUUUUUUUUUUK..",
+      ".KKKKKKKKKKKKKK.",
+      "...KFFFFFFFFK...",
+      "...KFEFFFFEFK...",
+      "...KFFFFFFFFK...",
+      "..KUUUUUUUUUUK..",
+      ".KWUUUUUUUUUUFK.",
+      ".KWKUUUUUUUUUK..",
+      ".KBKNNYYNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KBKNNNNNNNNNK..",
+      ".KK.KBBK.KBBK...",
+      "....KBBK.KBBK...",
+      "....KKKK.KKKK...",
+      "................",
+      "................",
+      "................"
+    ]
+  ];
+
+  // 莉莉娅公主 (16x22, 2帧)
+  const PRINCESS_FRAMES = [
+    [
+      ".....K.KK.K.....",
+      ".....KYRRYK.....",
+      ".....KYYYYK.....",
+      "...KKYYYYYYKK...",
+      "..KYYFFFFFFYYK..",
+      "..KYFFEFFEFYYK..",
+      "..KYYFFFFFFYYK..",
+      "...KKPPPPPPKK...",
+      "..KPPPPPPPPPPK..",
+      ".KFPPYYYYYYPPFK.",
+      ".KFPPPPPPPPPPFK.",
+      "..KKMMMMMMMMKK..",
+      "...KPPPPPPPPK...",
+      "..KPPPPPPPPPPK..",
+      "..KMMMMMMMMMMK..",
+      ".KPPPPPPPPPPPPK.",
+      ".KMMMMMMMMMMMMK.",
+      "..KKKKKKKKKKKK..",
+      "...KRRK..KRRK...",
+      "...KKKK..KKKK...",
+      "................",
+      "................"
+    ],
+    [
+      "................",
+      ".....K.KK.K.....",
+      ".....KYRRYK.....",
+      ".....KYYYYK.....",
+      "...KKYYYYYYKK...",
+      "..KYYFFFFFFYYK..",
+      "..KYFFEFFEFYYK..",
+      "..KYYFFFFFFYYK..",
+      "...KKPPPPPPKK...",
+      "..KPPPPPPPPPPK..",
+      ".KFPPYYYYYYPPFK.",
+      ".KFPPPPPPPPPPFK.",
+      "..KKMMMMMMMMKK..",
+      "...KPPPPPPPPK...",
+      "..KPPPPPPPPPPK..",
+      "..KMMMMMMMMMMK..",
+      ".KPPPPPPPPPPPPK.",
+      ".KMMMMMMMMMMMMK.",
+      "..KKKKKKKKKKKK..",
+      "...KRRK..KRRK...",
+      "...KKKK..KKKK...",
+      "................"
+    ]
+  ];
+
+  // 深渊红龙 Boss (28x26, 面向左, 2帧)
+  const DRAGON_PAL = {
+    ".": null,
+    "K": "#1C0C0C",
+    "R": "#D82820",
+    "D": "#8E1410",
+    "O": "#FF6A28",
+    "Y": "#FFE066",
+    "W": "#FFFFFF",
+    "G": "#58E050"
+  };
+
+  const DRAGON_1 = [
+    ".......KK......KK...........",
+    "......KYYK....KYYK..........",
+    ".....KRRRRKKKKRRRRK.........",
+    "....KRRRRRRRRRRRRRRK........",
+    "...KRRRWWRRRRRRRRRRRK.......",
+    "..KRRRRWGRRRRRRRRRRRRK..KK..",
+    ".KRRRRRRRRRRRRRRRRRRRK.KDDK.",
+    ".KRRRRKKKKKKKKRRRRRRRRKDDDK.",
+    "..KKKKWWWWWWWWKRRRRRRKDDDK..",
+    ".....KKKKKKKKKRRRRRRRKDDDK..",
+    "........KYYYYRRRRRRRRKDDK...",
+    ".......KYYYYYRRRRRRRRKDK....",
+    "......KYYYYYYRRRRRRRRKK.....",
+    ".....KYYYYYYYRRRRRRRRK......",
+    ".....KYYYYYYYRRRRRRRRRK.....",
+    ".....KYYYYYYYRRRRRRRRRRK....",
+    "......KYYYYYYRRRRRRRRRRK....",
+    ".......KYYYYYRRRRRRRRRRK....",
+    "........KKKKKRRRRRRRRRK.....",
+    "........KRRRRK..KRRRRK......",
+    "........KRRRRK..KRRRRK......",
+    ".......KYYKKYK..KYYKKYK.....",
+    ".......KKKKKKK..KKKKKKK.....",
+    "............................",
+    "............................",
+    "............................"
+  ];
+
+  const DRAGON_2 = [
+    ".......KK......KK...........",
+    "......KYYK....KYYK..........",
+    ".....KRRRRKKKKRRRRK.........",
+    "....KRRRRRRRRRRRRRRK........",
+    "...KRRRWWRRRRRRRRRRRK.......",
+    "..KRRRRWGRRRRRRRRRRRRK......",
+    ".KRRRRRRRRRRRRRRRRRRRK.KKK..",
+    ".KRRRRKKKKKKKKRRRRRRRRKDDDK.",
+    "..KKKKWWWWWWWWKRRRRRRKDDDK..",
+    ".....KKKKKKKKKRRRRRRRKDDK...",
+    "........KYYYYRRRRRRRRKDK....",
+    ".......KYYYYYRRRRRRRRKK.....",
+    "......KYYYYYYRRRRRRRRK......",
+    ".....KYYYYYYYRRRRRRRRRK.....",
+    ".....KYYYYYYYRRRRRRRRRRK....",
+    ".....KYYYYYYYRRRRRRRRRRK....",
+    "......KYYYYYYRRRRRRRRRRK....",
+    ".......KYYYYYRRRRRRRRRK.....",
+    "........KKKKKRRRRRRRRK......",
+    ".........KRRRRK.KRRRRK......",
+    ".........KRRRRK.KRRRRK......",
+    "........KYYKKYK.KYYKKYK.....",
+    "........KKKKKKK.KKKKKKK.....",
+    "............................",
+    "............................",
+    "............................"
+  ];
+
+  const AXE_SPR = [
+    "......KKKK......",
+    "....KKYYYYKK....",
+    "...KYYWWWWYYK...",
+    "..KYYWWYYWWYYK..",
+    "..KYYWWYYWWYYK..",
+    "...KKYYOOYYKK...",
+    ".....KKBBKK.....",
+    "......KBBK......",
+    "......KBBK......",
+    "......KBBK......",
+    "......KBBK......",
+    "......KBBK......",
+    "......KBBK......",
+    "......KBBK......",
+    "......KKKK......",
+    "................"
+  ];
+
+  const FIREBALL_SPR = [
+    "....KKKK....",
+    "..KKYYYYKK..",
+    ".KYYWWWWYYK.",
+    "KYWWYYYYOOYK",
+    "KYWYYOOOOYYK",
+    "KYYOOOOORRYK",
+    ".KRRRRRRRRK.",
+    "..KKKKKKKK.."
+  ];
+
+  const HEART_SPR = [
+    ".KKK..KKK.",
+    "KRRRKRRRRK",
+    "KRWRRRRRRK",
+    "KRRRRRRRRK",
+    ".KRRRRRRK.",
+    "..KRRRRK..",
+    "...KRRK...",
+    "....KK...."
+  ];
+
+  const EXTRA_PAL = {
+    ".": null,
+    "K": "#1A1412",
+    "Y": "#FFE048",
+    "W": "#FFFFFF",
+    "O": "#FF7820",
+    "R": "#FF3848",
+    "B": "#985828"
+  };
 
   class SpriteBank {
     constructor() {
@@ -736,8 +1286,39 @@
         milk: renderMatrix(MILK_BOTTLE, ITEM_PAL),
         greenMilk: renderMatrix(GREEN_MILK, ITEM_PAL),
         star: renderMatrix(STAR_SPR, ITEM_PAL),
-        coins: COIN_FRAMES.map((m) => renderMatrix(m, ITEM_PAL))
+        coins: COIN_FRAMES.map((m) => renderMatrix(m, ITEM_PAL)),
+        axe: renderMatrix(AXE_SPR, EXTRA_PAL),
+        fireball: renderMatrix(FIREBALL_SPR, EXTRA_PAL),
+        heart: renderMatrix(HEART_SPR, EXTRA_PAL)
       };
+
+      this.npcs = {
+        elder: ELDER_FRAMES.map((m) => renderMatrix(m, NPC_PAL)),
+        knight: KNIGHT_FRAMES.map((m) => renderMatrix(m, NPC_PAL)),
+        miner: MINER_FRAMES.map((m) => renderMatrix(m, NPC_PAL)),
+        bard: BARD_FRAMES.map((m) => renderMatrix(m, NPC_PAL)),
+        mage: MAGE_FRAMES.map((m) => renderMatrix(m, NPC_PAL)),
+        princess: PRINCESS_FRAMES.map((m) => renderMatrix(m, NPC_PAL))
+      };
+
+      const d1 = renderMatrix(DRAGON_1, DRAGON_PAL);
+      const d2 = renderMatrix(DRAGON_2, DRAGON_PAL);
+      this.dragon = {
+        l1: d1,
+        l2: d2,
+        r1: flipCanvas(d1),
+        r2: flipCanvas(d2)
+      };
+
+      this.npcPortraits = {};
+      Object.keys(this.npcs).forEach((key) => {
+        try {
+          this.npcPortraits[key] = this.npcs[key][0].toDataURL();
+        } catch (_) {}
+      });
+      try {
+        this.npcPortraits.dragon = d1.toDataURL();
+      } catch (_) {}
 
       this.tiles = buildTileSprites();
     }

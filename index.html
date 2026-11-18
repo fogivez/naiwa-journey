@@ -14,7 +14,7 @@
       <img src="assets/naiwa_pixel.png" alt="奶娃" class="brand-icon" />
       <div>
         <h1 class="brand-title">奶娃之旅 · NAIWA'S JOURNEY</h1>
-        <div class="brand-sub">第一关：奶娃大草原 (World 1-1) · 作者：forgivez</div>
+        <div id="header-stage-sub" class="brand-sub">当前关卡：1-1 奶娃大草原 · 勇者奶娃斗恶龙篇</div>
       </div>
     </div>
     <div class="header-actions">
@@ -32,6 +32,17 @@
   <!-- 主体区：游戏屏幕 + 实时速通排行榜 -->
   <main class="main-layout">
     <section class="game-stage-card pixel-box">
+      <div class="stage-bar">
+        <span class="stage-bar-label">冒险关卡：</span>
+        <div class="stage-pills">
+          <button class="stage-pill active" data-stage="1" type="button">1-1 草原</button>
+          <button class="stage-pill" data-stage="2" type="button">1-2 矿洞</button>
+          <button class="stage-pill" data-stage="3" type="button">1-3 天桥</button>
+          <button class="stage-pill" data-stage="4" type="button">1-4 恶龙城</button>
+        </div>
+        <button id="npc-talk-btn" class="pixel-btn green sm hidden" type="button">💬 对话 (E)</button>
+      </div>
+
       <div class="hud-bar">
         <div class="hud-item">
           <span class="hud-label">状态</span>
@@ -61,6 +72,15 @@
           <div>PAUSED · 游戏已暂停</div>
           <div style="font-size: 12px; color: #dce4ff;">按 P / ESC 或点击上方「继续」恢复冒险</div>
         </div>
+        <!-- 勇者斗恶龙风格 NPC 对话框 (无配音) -->
+        <div id="dialogue-box" class="dialogue-box hidden">
+          <img id="dialogue-portrait" class="dialogue-portrait" src="assets/naiwa_pixel.png" alt="NPC" />
+          <div class="dialogue-body">
+            <div id="dialogue-speaker" class="dialogue-speaker">NPC</div>
+            <div id="dialogue-text" class="dialogue-text"></div>
+            <div id="dialogue-next" class="dialogue-next">点击此处或按 Space / E 继续 ▼</div>
+          </div>
+        </div>
       </div>
 
       <div class="controls-bar">
@@ -68,10 +88,11 @@
           移动 <span class="kbd">A</span><span class="kbd">D</span> / <span class="kbd">←</span><span class="kbd">→</span>
           · 跳跃 <span class="kbd">Space</span> / <span class="kbd">W</span> / <span class="kbd">↑</span>
           · 冲刺 <span class="kbd">Shift</span>
+          · 对话 <span class="kbd">E</span>
           · 进水管 <span class="kbd">S</span> / <span class="kbd">↓</span>
           · 重开 <span class="kbd">R</span>
         </div>
-        <div>提示：第4根绿水管按 ↓ 可进秘密金币捷径！（建议英文输入法游玩）</div>
+        <div>提示：靠近村民/公主按 E 对话（对话时计时器自动暂停）</div>
       </div>
 
       <!-- 手机/平板触控按钮 -->
@@ -123,7 +144,7 @@
       </div>
 
       <div class="author-banner">
-        欢迎体验像素横版闯关速通游戏<strong>《奶娃之旅》</strong>！当前开放第一关<strong>「1-1 奶娃大草原」</strong>。首次操作即开始速通计时，触碰终点旗杆立即锁表并实时刷新排行榜！
+        <strong>《奶娃之旅 · 勇者斗恶龙篇》</strong>共开放 4 大关卡：深渊红龙掳走了莉莉娅公主！快穿过草原、矿洞与天桥，与沿途村民/伙伴对话获取线索，最终杀入熔岩城堡打败恶龙救出公主吧！（对话期间速通计时自动暂停）
       </div>
 
       <div class="input-row">
@@ -134,10 +155,10 @@
       <div class="tips-grid">
         <div>🎮 移动：<span class="kbd">A</span><span class="kbd">D</span> 或 <span class="kbd">←</span><span class="kbd">→</span></div>
         <div>🦘 跳跃：<span class="kbd">Space</span> / <span class="kbd">W</span> / <span class="kbd">↑</span></div>
-        <div>💨 冲刺：<span class="kbd">Shift</span>（长按提速）</div>
-        <div>🕳️ 密道：第4根水管上按 <span class="kbd">↓</span></div>
-        <div>🍼 道具：奶瓶变大、星星无敌加速</div>
-        <div>⏱️ 速通：<span class="kbd">R</span> 一键秒重开刷榜</div>
+        <div>💨 冲刺：<span class="kbd">Shift</span>（手机点⚡冲刺开关）</div>
+        <div>💬 对话：靠近 NPC 按 <span class="kbd">E</span> 或点对话键</div>
+        <div>🕳️ 密道：1-1 第4根水管按 <span class="kbd">↓</span></div>
+        <div>⏱️ 速通：<span class="kbd">R</span> 一键秒重开</div>
       </div>
 
       <div class="modal-actions">
@@ -168,10 +189,35 @@
     </div>
   </div>
 
+  <!-- 过关剧情转场弹窗 (第1~3关通关后出现) -->
+  <div id="stage-clear-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h2 id="stage-clear-title" class="modal-title">🚩 关卡突破！STAGE CLEAR!</h2>
+      <div id="stage-clear-story" class="author-banner"></div>
+
+      <div class="victory-stats">
+        <div class="stat-box">
+          <div class="label">当前累计用时</div>
+          <div id="stage-clear-time" class="value">00:00.000</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">累计得分 / 金币</div>
+          <div id="stage-clear-score" class="value">0 分 / 0 币</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="next-stage-btn" class="pixel-btn green" type="button">▶ 前往下一关</button>
+        <button id="submit-stage1-btn" class="pixel-btn hidden" type="button">🏆 仅结算 1-1 速通上榜</button>
+        <button id="stage-retry-btn" class="pixel-btn secondary" type="button">🔄 重玩本关</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 通关结算弹窗 -->
   <div id="victory-modal" class="modal-backdrop hidden">
     <div class="modal-card">
-      <h2 class="modal-title">🎉 第一关通关！STAGE CLEAR!</h2>
+      <h2 id="victory-title" class="modal-title">🎉 勇者凯旋！全关通关！</h2>
       <div id="victory-pb-banner" class="pb-banner hidden">🔥 恭喜！刷新个人最佳速通纪录！</div>
 
       <div class="victory-stats">

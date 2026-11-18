@@ -65,6 +65,30 @@
     ["A5","D3","K"], ["F5","A3","H"], ["D5","G3","S"], ["G5","G2","H"]
   ];
 
+  // 1-3 迷雾天桥：轻快冒险的高原旋律
+  const HIGHLAND_SEQ = [
+    ["G4","G2","K"], ["B4","D3",null], ["D5","G2","H"], ["G5","D3","S"],
+    ["E5","C3",null], ["D5","G2","K"], ["B4","D3",null], ["G4","G2","H"],
+    ["A4","D3","K"], ["C5","F3",null], ["E5","A2","H"], ["D5","D3","S"],
+    ["B4","G2",null], ["A4","D3","K"], ["G4","G2",null], ["R","D3","H"],
+    ["D5","G2","K"], ["E5","C3",null], ["G5","G2","H"], ["A5","D3","S"],
+    ["G5","E3",null], ["E5","C3","K"], ["D5","G2",null], ["B4","D3","H"],
+    ["C5","A2","K"], ["D5","D3",null], ["E5","C3","H"], ["Fs5","D3","S"],
+    ["G5","G2",null], ["R","D3","K"], ["D5","G2",null], ["G4","D3","H"]
+  ];
+
+  // 1-4 恶龙熔岩城堡：紧凑紧张的勇者决战旋律
+  const CASTLE_SEQ = [
+    ["E4","E2","K"], ["G4","E2","H"], ["B4","E2","S"], ["E5","E2","H"],
+    ["Eb5","B2","K"], ["B4","E2","H"], ["G4","E2","S"], ["E4","B2","H"],
+    ["F4","F2","K"], ["A4","F2","H"], ["C5","F2","S"], ["F5","F2","H"],
+    ["E5","E2","K"], ["C5","A2","H"], ["A4","E2","S"], ["E4","B2","H"],
+    ["D4","D2","K"], ["F4","D2","H"], ["A4","D2","S"], ["D5","D2","H"],
+    ["C5","C2","K"], ["B4","G2","H"], ["A4","A2","S"], ["G4","E2","H"],
+    ["Fs4","B2","K"], ["A4","B2","H"], ["B4","B2","S"], ["Eb5","B2","H"],
+    ["E5","E2","K"], ["R","B2","H"], ["B4","E2","S"], ["E4","B2","H"]
+  ];
+
   class RetroAudioEngine {
     constructor() {
       this.ctx = null;
@@ -167,13 +191,17 @@
 
     _getSeq() {
       if (this.currentTrack === "underground") return UNDERGROUND_SEQ;
+      if (this.currentTrack === "highland") return HIGHLAND_SEQ;
+      if (this.currentTrack === "castle") return CASTLE_SEQ;
       if (this.currentTrack === "star") return STAR_SEQ;
       return OVERWORLD_SEQ;
     }
 
     _getStepDuration() {
       if (this.currentTrack === "star") return 0.11;
+      if (this.currentTrack === "castle") return 0.125;
       if (this.currentTrack === "underground") return 0.145;
+      if (this.currentTrack === "highland") return 0.14;
       return this.hurry ? 0.105 : 0.14;
     }
 
@@ -404,6 +432,28 @@
       if (!this.init() || !this.sfxEnabled || this.muted) return;
       const t = this.ctx.currentTime;
       this._tone(780, t, 0.04, "square", 0.16, this.sfxGain);
+    }
+
+    sfxBossHit() {
+      if (!this.init() || !this.sfxEnabled || this.muted) return;
+      const t = this.ctx.currentTime;
+      this._noiseBurst(t, 0.18, 450, 0.35, this.sfxGain);
+      this._sweep(320, 90, t, 0.18, "sawtooth", 0.3, this.sfxGain);
+    }
+
+    sfxBossDefeat() {
+      if (!this.init()) return;
+      this.stopBgm();
+      if (!this.sfxEnabled || this.muted) return;
+      const t = this.ctx.currentTime;
+      this._noiseBurst(t, 0.45, 320, 0.42, this.sfxGain);
+      this._sweep(260, 45, t, 0.55, "sawtooth", 0.32, this.sfxGain);
+    }
+
+    sfxAxe() {
+      if (!this.init() || !this.sfxEnabled || this.muted) return;
+      const t = this.ctx.currentTime;
+      this._sweep(620, 180, t, 0.16, "square", 0.28, this.sfxGain);
     }
   }
 
