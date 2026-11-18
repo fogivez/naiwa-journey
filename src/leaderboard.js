@@ -31,14 +31,32 @@
     );
   }
 
+  function normalizeSupabaseUrl(url) {
+    return String(url || "")
+      .trim()
+      .replace(/\/+$/, "")
+      .replace(/\/rest\/v1$/i, "")
+      .replace(/\/+$/, "");
+  }
+
+  function buildSupabaseHeaders(key, extra = {}) {
+    const cleanKey = String(key || "").trim();
+    const headers = { apikey: cleanKey, ...extra };
+    if (cleanKey.startsWith("eyJ")) {
+      headers.Authorization = `Bearer ${cleanKey}`;
+    }
+    return headers;
+  }
+
   class LeaderboardManager {
     constructor() {
       this.listeners = new Set();
       this.cloudRuns = [];
       this.cloudStatus = "local"; // 'local' | 'cloud-ok' | 'cloud-syncing' | 'cloud-err'
+      this.cloudError = "";
       this.lastSyncAt = null;
       this.pollTimer = null;
-      this.filterMode = "all"; // 'all' | 'player'
+      this.filterMode = "player"; // 默认仅展示真实玩家成绩；'all' 包含 NPC 基准
 
       this.channel = typeof BroadcastChannel !== "undefined"
         ? new BroadcastChannel("naiwa_leaderboard_v1")
@@ -57,6 +75,14 @@
           this._notify();
         }
       });
+
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden && this.isCloudEnabled()) {
+            this.syncCloudNow();
+          }
+        });
+      }
 
       this._startCloudPolling();
     }
@@ -81,10 +107,10 @@
         override = JSON.parse(localStorage.getItem(STORAGE_CLOUD_KEY) || "{}");
       } catch (_) {}
       return {
-        supabaseUrl: (override.supabaseUrl || base.supabaseUrl || "").replace(/\/+$/, ""),
-        supabaseAnonKey: override.supabaseAnonKey || base.supabaseAnonKey || "",
-        tableName: override.tableName || base.tableName || "naiwa_leaderboard",
-        pollIntervalMs: base.pollIntervalMs || 4000
+        supabaseUrl: normalizeSupabaseUrl(override.supabaseUrl || base.supabaseUrl || ""),
+        supabaseAnonKey: String(override.supabaseAnonKey || base.supabaseAnonKey || "").trim(),
+        tableName: String(override.tableName || base.tableName || "naiwa_leaderboard").trim() || "naiwa_leaderboard",
+        pollIntervalMs: base.pollIntervalMs || 10000
       };
     }
 
@@ -92,12 +118,13 @@
       localStorage.setItem(
         STORAGE_CLOUD_KEY,
         JSON.stringify({
-          supabaseUrl: (supabaseUrl || "").trim().replace(/\/+$/, ""),
-          supabaseAnonKey: (supabaseAnonKey || "").trim(),
-          tableName: (tableName || "naiwa_leaderboard").trim() || "naiwa_leaderboard"
+          supabaseUrl: normalizeSupabaseUrl(supabaseUrl),
+          supabaseAnonKey: String(supabaseAnonKey || "").trim(),
+          tableName: String(tableName || "naiwa_leaderboard").trim() || "naiwa_leaderboard"
         })
       );
       this.cloudRuns = [];
+      this.cloudError = "";
       this._startCloudPolling();
       this._notify();
     }
@@ -215,6 +242,7 @@
         personalBest: this.getPersonalBest(),
         cloudEnabled: this.isCloudEnabled(),
         cloudStatus: this.cloudStatus,
+        cloudError: this.cloudError,
         lastSyncAt: this.lastSyncAt
       };
     }
@@ -235,7 +263,11 @@
       }
       const cfg = this.getCloudConfig();
       this.syncCloudNow();
-      this.pollTimer = setInterval(() => this.syncCloudNow(), cfg.pollIntervalMs);
+      this.pollTimer = setInterval(() => {
+        if (typeof document === "undefined" || !document.hidden) {
+          this.syncCloudNow();
+        }
+      }, cfg.pollIntervalMs);
     }
 
     async syncCloudNow() {
@@ -247,12 +279,12 @@
       try {
         const url = `${cfg.supabaseUrl}/rest/v1/${encodeURIComponent(cfg.tableName)}?select=id,name,time_ms,coins,score,route,created_at&order=time_ms.asc&limit=50`;
         const res = await fetch(url, {
-          headers: {
-            apikey: cfg.supabaseAnonKey,
-            Authorization: `Bearer ${cfg.supabaseAnonKey}`
-          }
+          headers: buildSupabaseHeaders(cfg.supabaseAnonKey)
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          throw new Error(`HTTP ${res.status} ${detail}`);
+        }
         const rows = await res.json();
         this.cloudRuns = (Array.isArray(rows) ? rows : []).map((row) => ({
           id: "cloud-" + row.id,
@@ -266,10 +298,12 @@
           createdAt: row.created_at
         })).filter((r) => Number.isFinite(r.timeMs) && r.timeMs > 0);
         this.cloudStatus = "cloud-ok";
+        this.cloudError = "";
         this.lastSyncAt = new Date();
       } catch (err) {
         console.warn("云端排行榜拉取失败:", err);
         this.cloudStatus = "cloud-err";
+        this.cloudError = err && err.message ? err.message : "连接失败";
       }
       this._notify();
     }
@@ -278,14 +312,12 @@
       const cfg = this.getCloudConfig();
       try {
         const url = `${cfg.supabaseUrl}/rest/v1/${encodeURIComponent(cfg.tableName)}`;
-        await fetch(url, {
+        const res = await fetch(url, {
           method: "POST",
-          headers: {
+          headers: buildSupabaseHeaders(cfg.supabaseAnonKey, {
             "Content-Type": "application/json",
-            apikey: cfg.supabaseAnonKey,
-            Authorization: `Bearer ${cfg.supabaseAnonKey}`,
             Prefer: "return=minimal"
-          },
+          }),
           body: JSON.stringify({
             name: run.name,
             time_ms: run.timeMs,
@@ -294,6 +326,10 @@
             route: run.route
           })
         });
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          console.warn("云端成绩上传失败:", res.status, detail);
+        }
       } catch (err) {
         console.warn("云端成绩上传失败:", err);
       }

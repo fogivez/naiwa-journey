@@ -23,9 +23,9 @@ window.NAIWA_CONFIG = {
    * 上传 GitHub Pages 后，如需所有访客共享全球实时排名，只需填入免费 Supabase 项目的 URL 与 Anon Key（见 README.md）。
    */
   CLOUD_LEADERBOARD: {
-    supabaseUrl: "https://cebmveeilcxprzgntezi.supabase.co/rest/v1/",      // 例如: "https://xxxxx.supabase.co"
-    supabaseAnonKey: "sb_publishable_rG7MqbIrE92J4dUu8M7Wkg_YN8nXX7y",  // Supabase public anon key
+    supabaseUrl: "https://cebmveeilcxprzgntezi.supabase.co",      // 例如: "https://xxxxx.supabase.co"
+    supabaseAnonKey: "sb_publishable_rG7MqbIrE92J4dUu8M7Wkg_YN8nXX7y",  // Supabase public anon / publishable key
     tableName: "naiwa_leaderboard",
-    pollIntervalMs: 4000
+    pollIntervalMs: 10000
   }
 };

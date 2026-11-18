@@ -194,11 +194,18 @@
     hudPb.textContent = snap.personalBest ? fmt(snap.personalBest.timeMs) : "--:--.---";
 
     if (snap.cloudEnabled) {
-      if (snap.cloudStatus === "cloud-ok") lbLiveText.textContent = "云端实时同步";
-      else if (snap.cloudStatus === "cloud-syncing") lbLiveText.textContent = "云端同步中...";
-      else lbLiveText.textContent = "云端连接异常";
+      if (snap.cloudStatus === "cloud-ok") {
+        lbLiveText.textContent = "云端实时同步";
+        lbLiveText.parentElement.title = "云端连接正常";
+      } else if (snap.cloudStatus === "cloud-syncing") {
+        lbLiveText.textContent = "云端同步中...";
+      } else {
+        lbLiveText.textContent = "云端连接异常";
+        lbLiveText.parentElement.title = snap.cloudError || "请检查 Supabase 权限或 URL";
+      }
     } else {
       lbLiveText.textContent = "本地实时榜";
+      lbLiveText.parentElement.title = "";
     }
 
     tabAllBtn.classList.toggle("active", snap.filterMode === "all");
